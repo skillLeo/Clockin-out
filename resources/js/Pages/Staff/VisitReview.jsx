@@ -22,6 +22,36 @@ function NoteCard({ label, content, color }) {
     );
 }
 
+function SummaryCard({ label, content }) {
+    let sections = null;
+    try {
+        const parsed = JSON.parse(content);
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+            sections = Object.entries(parsed);
+        }
+    } catch {}
+
+    return (
+        <div className="rounded-lg border bg-emerald-50 border-emerald-200 px-5 py-4">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-4">{label}</p>
+            {sections ? (
+                <div className="divide-y divide-emerald-100">
+                    {sections.map(([key, value]) => (
+                        <div key={key} className="py-3 first:pt-0 last:pb-0">
+                            <p className="text-[11px] font-bold uppercase tracking-widest text-emerald-600 mb-1.5">{key}</p>
+                            <p className="text-sm text-slate-800 leading-relaxed">{value}</p>
+                        </div>
+                    ))}
+                </div>
+            ) : content ? (
+                <p className="text-sm text-slate-800 whitespace-pre-wrap leading-relaxed">{content}</p>
+            ) : (
+                <p className="text-sm italic text-slate-400">Not available</p>
+            )}
+        </div>
+    );
+}
+
 const STATUS = {
     draft:         { label: 'Draft',     cls: 'bg-amber-100 text-amber-700' },
     pending_admin: { label: 'Submitted', cls: 'bg-blue-100 text-blue-700' },
@@ -80,7 +110,7 @@ export default function VisitReview({ visit }) {
             <div className="space-y-3 mb-5">
                 <NoteCard label="Your Original Note"    content={visit.note_staff_raw}  color="slate" />
                 <NoteCard label="AI Cleaned Note"       content={visit.note_ai_cleaned} color="indigo" />
-                <NoteCard label="AI Structured Summary" content={visit.note_ai_summary} color="emerald" />
+                <SummaryCard label="AI Structured Summary" content={visit.note_ai_summary} />
             </div>
 
             {/* Draft — submit bar */}

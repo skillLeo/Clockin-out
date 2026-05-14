@@ -18,6 +18,25 @@ function Field({ label, value }) {
     );
 }
 
+function NoteContent({ value }) {
+    try {
+        const parsed = JSON.parse(value);
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+            return (
+                <div className="divide-y divide-emerald-100">
+                    {Object.entries(parsed).map(([key, val]) => (
+                        <div key={key} className="py-3 first:pt-0 last:pb-0">
+                            <p className="text-[11px] font-bold uppercase tracking-widest text-emerald-600 mb-1.5">{key}</p>
+                            <p className="text-sm text-slate-800 leading-relaxed">{val}</p>
+                        </div>
+                    ))}
+                </div>
+            );
+        }
+    } catch {}
+    return <p className="text-sm text-slate-800 whitespace-pre-wrap leading-relaxed">{value}</p>;
+}
+
 function EditableNote({ label, content, color, field, visitId, onSaved, locked }) {
     const colors = {
         slate:   { wrap: 'bg-slate-50 border-slate-200',   ring: 'focus:ring-slate-400' },
@@ -107,8 +126,8 @@ function EditableNote({ label, content, color, field, visitId, onSaved, locked }
                         className={`w-full rounded-md border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 ${ring} focus:border-transparent resize-none`}
                       />
                     : value
-                        ? <p className="text-sm text-slate-800 whitespace-pre-wrap leading-relaxed">{value}</p>
-                        : <p className="text-sm italic text-slate-400">{locked ? 'Not available.' : 'Not available — click the pencil to add.'}</p>
+                        ? <NoteContent value={value} locked={locked} />
+                        : <p className="text-sm italic text-slate-400">{locked ? 'Not available.' : 'Not available — click Edit to add.'}</p>
                 }
             </div>
         </div>
