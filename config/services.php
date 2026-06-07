@@ -39,4 +39,11 @@ return [
         'key' => env('OPENAI_API_KEY'),
     ],
 
+    'azure_openai' => [
+        'endpoint'   => env('AZURE_OPENAI_ENDPOINT'),
+        'key'        => env('AZURE_OPENAI_KEY'),
+        'deployment' => env('AZURE_OPENAI_DEPLOYMENT', 'gpt-4o'),
+        'api_version' => env('AZURE_OPENAI_API_VERSION', '2024-02-01'),
+    ],
+
 ];

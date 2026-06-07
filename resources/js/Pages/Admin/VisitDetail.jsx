@@ -235,6 +235,16 @@ export default function VisitDetail({ visit }) {
                 )}
 
                 {isPending && !rejecting && (
+                    <div className="rounded-xl bg-blue-50 border border-blue-200 px-5 py-4">
+                        <p className="text-xs font-semibold uppercase tracking-wider text-blue-600 mb-2">What happens when you decide?</p>
+                        <ul className="space-y-1.5 text-sm text-blue-800">
+                            <li><span className="font-semibold text-emerald-700">Approve</span> — The visit is marked approved and included in payroll. The staff member can see the approval on their review page.</li>
+                            <li><span className="font-semibold text-red-700">Reject</span> — Your written reason is sent back to the staff member. The visit is marked rejected and they are notified to check it.</li>
+                        </ul>
+                    </div>
+                )}
+
+                {isPending && !rejecting && (
                     <div className="flex flex-col sm:flex-row gap-3 justify-end pt-1">
                         <button onClick={() => setRejecting(true)}
                             className="flex items-center justify-center gap-2 rounded-lg border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors">

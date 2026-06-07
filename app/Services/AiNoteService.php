@@ -15,16 +15,7 @@ class AiNoteService
         $prompt   = $this->buildPrompt($visit->note_staff_raw, $settings);
 
         try {
-            $response = Http::withToken(config('services.openai.key'))
-                ->withOptions(['proxy' => ''])
-                ->timeout(30)
-                ->post('https://api.openai.com/v1/chat/completions', [
-                    'model'           => 'gpt-4o',
-                    'response_format' => ['type' => 'json_object'],
-                    'messages'        => [
-                        ['role' => 'user', 'content' => $prompt],
-                    ],
-                ]);
+            $response = $this->callApi($prompt);
 
             if (! $response->successful()) {
                 Log::error('AI note processing failed', ['status' => $response->status(), 'visit_id' => $visit->id]);
@@ -40,7 +31,9 @@ class AiNoteService
 
             $visit->update([
                 'note_ai_cleaned'  => $parsed['cleaned_note'],
-                'note_ai_summary'  => $parsed['structured_summary'],
+                'note_ai_summary'  => is_array($parsed['structured_summary'])
+                    ? json_encode($parsed['structured_summary'])
+                    : $parsed['structured_summary'],
             ]);
 
             return true;
@@ -48,6 +41,41 @@ class AiNoteService
             Log::error('AI note processing exception', ['visit_id' => $visit->id, 'error' => $e->getMessage()]);
             return false;
         }
+    }
+
+    private function callApi(string $prompt): \Illuminate\Http\Client\Response
+    {
+        $useAzure = config('services.azure_openai.endpoint') !== null;
+
+        if ($useAzure) {
+            $endpoint   = rtrim(config('services.azure_openai.endpoint'), '/');
+            $deployment = config('services.azure_openai.deployment', 'gpt-4o');
+            $apiVersion = config('services.azure_openai.api_version', '2024-02-01');
+            $apiKey     = config('services.azure_openai.key');
+
+            $url = "{$endpoint}/openai/deployments/{$deployment}/chat/completions?api-version={$apiVersion}";
+
+            return Http::withHeaders(['api-key' => $apiKey])
+                ->withOptions(['proxy' => ''])
+                ->timeout(30)
+                ->post($url, [
+                    'response_format' => ['type' => 'json_object'],
+                    'messages'        => [
+                        ['role' => 'user', 'content' => $prompt],
+                    ],
+                ]);
+        }
+
+        return Http::withToken(config('services.openai.key'))
+            ->withOptions(['proxy' => ''])
+            ->timeout(30)
+            ->post('https://api.openai.com/v1/chat/completions', [
+                'model'           => 'gpt-4o',
+                'response_format' => ['type' => 'json_object'],
+                'messages'        => [
+                    ['role' => 'user', 'content' => $prompt],
+                ],
+            ]);
     }
 
     private function settings(): AiSetting
@@ -69,8 +97,8 @@ class AiNoteService
             $settings->section_order ?? $settings->sections
         ));
 
-        $length       = $settings->summary_length;
-        $tone         = $settings->tone;
+        $length        = $settings->summary_length;
+        $tone          = $settings->tone;
         $cleaningRules = $settings->cleaning_rules
             ? "\nAdditional cleaning rules: {$settings->cleaning_rules}"
             : '';
@@ -93,7 +121,12 @@ Raw Note:
 Respond ONLY in this JSON format:
 {
   "cleaned_note": "...",
-  "structured_summary": "..."
+  "structured_summary": {
+    "Activities": "...",
+    "Participation": "...",
+    "Support Provided": "...",
+    "Outcomes": "..."
+  }
 }
 PROMPT;
     }

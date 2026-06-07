@@ -99,9 +99,12 @@ function YesNo({ value, onChange }) {
     );
 }
 
-function QuestionCard({ children }) {
+function QuestionCard({ number, children }) {
     return (
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm px-5 py-5">
+            {number && (
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">{number}</p>
+            )}
             {children}
         </div>
     );
@@ -334,7 +337,7 @@ export default function VisitActive({ visit, today_minutes = 0, week_minutes = 0
                     </div>
 
                     {/* Assistance */}
-                    <QuestionCard>
+                    <QuestionCard number="951">
                         <div className="flex items-center justify-between gap-4 mb-3">
                             <p className="text-sm font-semibold text-slate-800">What assistance was provided?</p>
                             <YesNo value={form.q951_yes} onChange={v => setField('q951_yes', v)} />
@@ -374,7 +377,7 @@ export default function VisitActive({ visit, today_minutes = 0, week_minutes = 0
                     </QuestionCard>
 
                     {/* Challenges */}
-                    <QuestionCard>
+                    <QuestionCard number="952">
                         <div className="flex items-center justify-between gap-4 mb-3">
                             <p className="text-sm font-semibold text-slate-800">Were there any challenges?</p>
                             <YesNo value={form.q952_yes} onChange={v => setField('q952_yes', v)} />
@@ -388,7 +391,7 @@ export default function VisitActive({ visit, today_minutes = 0, week_minutes = 0
                     </QuestionCard>
 
                     {/* ISP */}
-                    <QuestionCard>
+                    <QuestionCard number="953">
                         <div className="flex items-center justify-between gap-4 mb-3">
                             <p className="text-sm font-semibold text-slate-800">Services rendered per the ISP?</p>
                             <YesNo value={form.q953_yes} onChange={v => setField('q953_yes', v)} />
@@ -400,7 +403,7 @@ export default function VisitActive({ visit, today_minutes = 0, week_minutes = 0
                     </QuestionCard>
 
                     {/* Adjustments */}
-                    <QuestionCard>
+                    <QuestionCard number="954">
                         <div className="flex items-center justify-between gap-4 mb-3">
                             <p className="text-sm font-semibold text-slate-800">Any recommended adjustments to the consumer's ISP?</p>
                             <YesNo value={form.q954_yes} onChange={v => setField('q954_yes', v)} />
@@ -414,7 +417,7 @@ export default function VisitActive({ visit, today_minutes = 0, week_minutes = 0
                     </QuestionCard>
 
                     {/* Progress */}
-                    <QuestionCard>
+                    <QuestionCard number="955">
                         <p className="text-sm font-semibold text-slate-800 mb-3">Please note any progress</p>
                         <textarea rows={3} value={form.q955_notes}
                             onChange={e => setField('q955_notes', e.target.value)}
