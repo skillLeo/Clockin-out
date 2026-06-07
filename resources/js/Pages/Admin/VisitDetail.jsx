@@ -206,11 +206,10 @@ export default function VisitDetail({ visit }) {
                 {/* Time */}
                 <div className="bg-white rounded-xl border border-slate-200 shadow-sm px-5 py-5">
                     <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-4">Time & Units</p>
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-2 gap-3">
                         {[
-                            { label: 'Raw Hours',     value: visit.total_hours_raw },
-                            { label: 'Rounded Hours', value: visit.total_hours_rounded },
-                            { label: 'Billing Units', value: visit.total_units },
+                            { label: 'Time',  value: visit.total_hours_raw },
+                            { label: 'Units', value: visit.total_units },
                         ].map(({ label, value }) => (
                             <div key={label} className="rounded-lg bg-slate-50 border border-slate-200 px-3 py-4 text-center">
                                 <p className="text-xl sm:text-2xl font-bold text-slate-900 tabular-nums">{value ?? '—'}</p>

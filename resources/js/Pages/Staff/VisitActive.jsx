@@ -1,25 +1,43 @@
 import { Head, router } from '@inertiajs/react';
 import StaffLayout from '@/Layouts/StaffLayout';
 import axios from 'axios';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { StopCircleIcon, DocumentTextIcon, SparklesIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
 
 const ASSISTANCE_OPTIONS = [
-    'Emotional support',
-    'Meal clean-up',
-    'Safety monitoring',
-    'Transition support',
-    'Shower assistance',
-    'Dressing assistance',
-    'Communication support',
-    'Redirection',
-    'Leisure activity',
-    'Social engagement',
+    'Meal Preparation / Cooking',
+    'Shopping',
+    'Financial Management',
+    'Time Management',
+    'Medication Management',
+    'Medical Appointments',
+    'Appointment Management',
+    'Personal Hygiene / Grooming',
+    'Home Maintenance / Cleaning',
+    'Fire Safety / Drills',
+    'Running Errands',
+    'Traffic Safety',
+    'Social / Leisure Activities',
+    'Social Skills',
+    'Communication Support',
+    'Offering Choice',
+    'Prompting / Reminding',
+    'Demonstrating / Modeling / Coaching',
+    'Role Play',
+    'Redirecting',
+    'Positive Reinforcement',
+    'Emotional Support',
+    'Fall Prevention',
+    'Mobility / Transfers',
+    'Safety Monitoring',
+    'Behavioral Support',
+    'Community Integration',
+    'Transportation Assistance',
 ];
 
 const defaultForm = {
     description: '',
-    q951_yes: null, q951_assistance: [], q951_notes: '',
+    q951_yes: null, q951_assistance: [], q951_other: '', q951_notes: '',
     q952_yes: null, q952_notes: '',
     q953_yes: null, q953_notes: '',
     q954_yes: null, q954_notes: '',
@@ -33,26 +51,27 @@ function buildNote(form) {
     lines.push(form.description.trim() || '(none)');
 
     lines.push('');
-    lines.push(`951 - What assistance was provided? ${yesNoLabel(form.q951_yes)}`);
+    lines.push(`What assistance was provided? ${yesNoLabel(form.q951_yes)}`);
     if (form.q951_yes === true && form.q951_assistance.length > 0) {
         form.q951_assistance.forEach(a => lines.push(`• ${a}`));
     }
+    if (form.q951_yes === true && form.q951_other.trim()) lines.push(`• Other: ${form.q951_other.trim()}`);
     if (form.q951_notes.trim()) lines.push(`Note: ${form.q951_notes.trim()}`);
 
     lines.push('');
-    lines.push(`952 - Were there any challenges? ${yesNoLabel(form.q952_yes)}`);
+    lines.push(`Were there any challenges? ${yesNoLabel(form.q952_yes)}`);
     if (form.q952_yes === true && form.q952_notes.trim()) lines.push(form.q952_notes.trim());
 
     lines.push('');
-    lines.push(`953 - Services rendered per the ISP? ${yesNoLabel(form.q953_yes)}`);
+    lines.push(`Services rendered per the ISP? ${yesNoLabel(form.q953_yes)}`);
     if (form.q953_notes.trim()) lines.push(`Note: ${form.q953_notes.trim()}`);
 
     lines.push('');
-    lines.push(`954 - Any recommended adjustments? ${yesNoLabel(form.q954_yes)}`);
+    lines.push(`Any recommended adjustments? ${yesNoLabel(form.q954_yes)}`);
     if (form.q954_yes === true && form.q954_notes.trim()) lines.push(form.q954_notes.trim());
 
     lines.push('');
-    lines.push('955 - Please note any progress:');
+    lines.push('Please note any progress:');
     if (form.q955_notes.trim()) lines.push(form.q955_notes.trim());
 
     return lines.join('\n');
@@ -80,10 +99,9 @@ function YesNo({ value, onChange }) {
     );
 }
 
-function QuestionCard({ number, question, children }) {
+function QuestionCard({ children }) {
     return (
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm px-5 py-5">
-            <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">{number}</p>
             {children}
         </div>
     );
@@ -105,7 +123,13 @@ function fmt(iso) {
     return new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 
-export default function VisitActive({ visit }) {
+function fmtMins(mins) {
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return h > 0 ? `${h}h & ${m}m` : `${m}m`;
+}
+
+export default function VisitActive({ visit, today_minutes = 0, week_minutes = 0 }) {
     const noteKey = `evv_staff_note_${visit.id}`;
 
     const [ending, setEnding]         = useState(false);
@@ -149,6 +173,27 @@ export default function VisitActive({ visit }) {
 
     const isClockedOut = !!visit.clock_out_time;
     const isReady = form.description.trim().length > 0;
+
+    const [elapsed, setElapsed] = useState('');
+    const [liveTime, setLiveTime] = useState(() => new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit' }));
+    useEffect(() => {
+        if (isClockedOut || !visit.clock_in_time) return;
+        const tick = () => {
+            const now = new Date();
+            setLiveTime(now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit' }));
+            const diff = Math.floor((now - new Date(visit.clock_in_time)) / 1000);
+            const h = Math.floor(diff / 3600);
+            const m = Math.floor((diff % 3600) / 60);
+            const s = diff % 60;
+            setElapsed(h > 0
+                ? `${h}h & ${String(m).padStart(2, '0')}m`
+                : `${m}m ${String(s).padStart(2, '0')}s`
+            );
+        };
+        tick();
+        const id = setInterval(tick, 1000);
+        return () => clearInterval(id);
+    }, [isClockedOut, visit.clock_in_time]);
 
     const endVisit = async () => {
         setEnding(true); setError(null);
@@ -226,13 +271,36 @@ export default function VisitActive({ visit }) {
             {error && <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
 
             {!isClockedOut ? (
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <p className="text-sm text-slate-500">When the visit is complete, click End Visit to record your clock-out time and GPS location.</p>
-                    <button onClick={endVisit} disabled={ending}
-                        className="flex items-center justify-center gap-2 flex-shrink-0 rounded-lg bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-60 transition-colors w-full sm:w-auto">
-                        <StopCircleIcon className="h-4 w-4" />
-                        {ending ? 'Ending…' : 'End Visit'}
-                    </button>
+                <div className="space-y-3">
+                    {/* Live shift timer */}
+                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                        <div className="bg-slate-900 px-5 py-3 text-center">
+                            <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-0.5">Current Time</p>
+                            <p className="text-2xl font-bold tabular-nums text-white tracking-tight">{liveTime}</p>
+                        </div>
+                        <div className="divide-y divide-slate-100">
+                            {[
+                                { label: 'Week',  value: fmtMins(week_minutes) },
+                                { label: 'Today', value: fmtMins(today_minutes) },
+                                { label: 'Shift', value: elapsed || '0m 00s' },
+                            ].map(({ label, value }) => (
+                                <div key={label} className="flex items-center justify-between px-5 py-3">
+                                    <p className="text-sm font-semibold text-slate-500">{label}</p>
+                                    <p className="text-sm font-bold text-slate-900 tabular-nums">{value}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* End visit */}
+                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <p className="text-sm text-slate-500">When the visit is complete, click End Visit to record your clock-out time and GPS location.</p>
+                        <button onClick={endVisit} disabled={ending}
+                            className="flex items-center justify-center gap-2 flex-shrink-0 rounded-lg bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-60 transition-colors w-full sm:w-auto">
+                            <StopCircleIcon className="h-4 w-4" />
+                            {ending ? 'Ending…' : 'End Visit'}
+                        </button>
+                    </div>
                 </div>
             ) : (
                 <div className="space-y-4">
@@ -240,11 +308,10 @@ export default function VisitActive({ visit }) {
                     {/* Time summary */}
                     <div className="bg-white rounded-xl border border-slate-200 shadow-sm px-5 py-5">
                         <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-4">Time Summary</p>
-                        <div className="grid grid-cols-3 gap-3 text-center">
+                        <div className="grid grid-cols-2 gap-3 text-center">
                             {[
-                                { label: 'Raw Hours',     value: times?.total_hours_raw     ?? visit.total_hours_raw },
-                                { label: 'Rounded Hours', value: times?.total_hours_rounded ?? visit.total_hours_rounded },
-                                { label: 'Units',         value: times?.total_units         ?? visit.total_units },
+                                { label: 'Time',  value: times?.total_hours_rounded ?? visit.total_hours_rounded },
+                                { label: 'Units', value: times?.total_units         ?? visit.total_units },
                             ].map(({ label, value }) => (
                                 <div key={label} className="rounded-lg bg-slate-50 border border-slate-200 py-4 px-2">
                                     <p className="text-xl sm:text-2xl font-bold text-slate-900 tabular-nums">{value ?? '—'}</p>
@@ -266,8 +333,8 @@ export default function VisitActive({ visit }) {
                             className={ta} />
                     </div>
 
-                    {/* 951 */}
-                    <QuestionCard number="951">
+                    {/* Assistance */}
+                    <QuestionCard>
                         <div className="flex items-center justify-between gap-4 mb-3">
                             <p className="text-sm font-semibold text-slate-800">What assistance was provided?</p>
                             <YesNo value={form.q951_yes} onChange={v => setField('q951_yes', v)} />
@@ -284,7 +351,20 @@ export default function VisitActive({ visit }) {
                                             <span className="text-sm text-slate-700 group-hover:text-slate-900">{opt}</span>
                                         </label>
                                     ))}
+                                    <label className="flex items-center gap-2 cursor-pointer group col-span-2">
+                                        <input type="checkbox"
+                                            checked={form.q951_assistance.includes('Other')}
+                                            onChange={() => toggleAssistance('Other')}
+                                            className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900 cursor-pointer" />
+                                        <span className="text-sm text-slate-700 group-hover:text-slate-900">Other</span>
+                                    </label>
                                 </div>
+                                {form.q951_assistance.includes('Other') && (
+                                    <input type="text" value={form.q951_other}
+                                        onChange={e => setField('q951_other', e.target.value)}
+                                        placeholder="Please specify…"
+                                        className="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent mb-3" />
+                                )}
                                 <input type="text" value={form.q951_notes}
                                     onChange={e => setField('q951_notes', e.target.value)}
                                     placeholder="Additional notes (optional)…"
@@ -293,8 +373,8 @@ export default function VisitActive({ visit }) {
                         )}
                     </QuestionCard>
 
-                    {/* 952 */}
-                    <QuestionCard number="952">
+                    {/* Challenges */}
+                    <QuestionCard>
                         <div className="flex items-center justify-between gap-4 mb-3">
                             <p className="text-sm font-semibold text-slate-800">Were there any challenges?</p>
                             <YesNo value={form.q952_yes} onChange={v => setField('q952_yes', v)} />
@@ -307,8 +387,8 @@ export default function VisitActive({ visit }) {
                         )}
                     </QuestionCard>
 
-                    {/* 953 */}
-                    <QuestionCard number="953">
+                    {/* ISP */}
+                    <QuestionCard>
                         <div className="flex items-center justify-between gap-4 mb-3">
                             <p className="text-sm font-semibold text-slate-800">Services rendered per the ISP?</p>
                             <YesNo value={form.q953_yes} onChange={v => setField('q953_yes', v)} />
@@ -319,8 +399,8 @@ export default function VisitActive({ visit }) {
                             className="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent" />
                     </QuestionCard>
 
-                    {/* 954 */}
-                    <QuestionCard number="954">
+                    {/* Adjustments */}
+                    <QuestionCard>
                         <div className="flex items-center justify-between gap-4 mb-3">
                             <p className="text-sm font-semibold text-slate-800">Any recommended adjustments to the consumer's ISP?</p>
                             <YesNo value={form.q954_yes} onChange={v => setField('q954_yes', v)} />
@@ -333,8 +413,8 @@ export default function VisitActive({ visit }) {
                         )}
                     </QuestionCard>
 
-                    {/* 955 */}
-                    <QuestionCard number="955">
+                    {/* Progress */}
+                    <QuestionCard>
                         <p className="text-sm font-semibold text-slate-800 mb-3">Please note any progress</p>
                         <textarea rows={3} value={form.q955_notes}
                             onChange={e => setField('q955_notes', e.target.value)}

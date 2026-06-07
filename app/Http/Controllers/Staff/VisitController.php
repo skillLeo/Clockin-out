@@ -46,6 +46,20 @@ class VisitController extends Controller
 
         $visit->load(['individual', 'service', 'assignment']);
 
+        $staffId = $request->user()->id;
+
+        $todayMinutes = Visit::where('staff_id', $staffId)
+            ->whereDate('clock_in_time', today())
+            ->whereNotNull('clock_out_time')
+            ->where('id', '!=', $visit->id)
+            ->sum('total_hours_raw') * 60;
+
+        $weekMinutes = Visit::where('staff_id', $staffId)
+            ->whereBetween('clock_in_time', [now()->startOfWeek(), now()->endOfWeek()])
+            ->whereNotNull('clock_out_time')
+            ->where('id', '!=', $visit->id)
+            ->sum('total_hours_raw') * 60;
+
         return Inertia::render('Staff/VisitActive', [
             'visit' => [
                 'id'                  => $visit->id,
@@ -58,6 +72,8 @@ class VisitController extends Controller
                 'total_hours_rounded' => $visit->total_hours_rounded,
                 'total_units'         => $visit->total_units,
             ],
+            'today_minutes' => (int) round($todayMinutes),
+            'week_minutes'  => (int) round($weekMinutes),
         ]);
     }
 
